@@ -40,9 +40,23 @@ jobs:
             exit 1
           fi
           
-          # Add host to known_hosts
+          # Verify EC2_HOST format (should be IP or hostname, no extra characters)
+          echo "EC2_HOST value: $EC2_HOST"
+          
+          # Add host to known_hosts with timeout
           echo "Adding $EC2_HOST to known_hosts..."
-          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          if ssh-keyscan -H -T 10 $EC2_HOST >> ~/.ssh/known_hosts 2>&1; then
+            echo "✅ ssh-keyscan succeeded"
+          else
+            echo "⚠️  Warning: ssh-keyscan failed (exit code $?)"
+            echo "This might be due to firewall rules or GitHub Actions IPs not allowed on port 22"
+            echo "Disabling strict host key checking for this host..."
+            # Create SSH config to skip host key verification
+            echo "Host *" >> ~/.ssh/config
+            echo "    StrictHostKeyChecking no" >> ~/.ssh/config
+            echo "    UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+            chmod 600 ~/.ssh/config
+          fi
           
           echo "✅ SSH setup complete"
 

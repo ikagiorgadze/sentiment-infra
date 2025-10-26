@@ -29,9 +29,10 @@ services:
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-UTC}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?Set N8N_ENCRYPTION_KEY}
       - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
-      - N8N_CORS_ORIGIN=${N8N_CORS_ORIGIN:-https://example.com}
-      - N8N_CORS_ALLOW_METHODS=GET,POST,OPTIONS
-      - N8N_CORS_ALLOW_HEADERS=Accept,Authorization,Content-Type,Origin,Referer,User-Agent
+      - N8N_CORS_ORIGIN=${N8N_CORS_ORIGIN}
+      - N8N_CORS_ALLOW_METHODS=GET,POST,OPTIONS,PUT,PATCH,DELETE
+      - N8N_CORS_ALLOW_HEADERS=Accept,Authorization,Content-Type,Origin,Referer,User-Agent,X-Requested-With
+      - N8N_CORS_ALLOW_CREDENTIALS=true
       - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
       - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:?Set N8N_BASIC_AUTH_USER}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:?Set N8N_BASIC_AUTH_PASSWORD}
@@ -41,6 +42,15 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - app-network
+  
+  adminer:
+    image: adminer
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
     networks:
       - app-network
 

@@ -1,0 +1,98 @@
+name: Deploy Infra to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+
+      - name: Copy files to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh $EC2_USER@$EC2_HOST "mkdir -p ~/sentiment-infra"
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            ./ $EC2_USER@$EC2_HOST:~/sentiment-infra/
+
+      - name: Create .env file on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
+          N8N_BASIC_AUTH_USER: ${{ secrets.N8N_BASIC_AUTH_USER }}
+          N8N_BASIC_AUTH_PASSWORD: ${{ secrets.N8N_BASIC_AUTH_PASSWORD }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          N8N_CORS_ORIGIN: ${{ secrets.N8N_CORS_ORIGIN }}
+        run: |
+          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/setup-env.sh" <<EOF
+          $POSTGRES_USER
+          $POSTGRES_PASSWORD
+          $POSTGRES_DB
+          $N8N_ENCRYPTION_KEY
+          $N8N_BASIC_AUTH_USER
+          $N8N_BASIC_AUTH_PASSWORD
+          $WEBHOOK_URL
+          $N8N_CORS_ORIGIN
+          EOF
+
+      - name: Deploy with Docker Compose
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/deploy.sh"
+
+      - name: Import n8n workflows
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/import-n8n-workflows.sh"
+
+      - name: Health check
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/health-check.sh"
+
+      - name: Deployment Summary
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo ""
+          echo "🔗 Access your services:"
+          echo "   - n8n UI: http://$EC2_HOST:5678"
+          echo "   - Adminer: http://$EC2_HOST:8080"
+          echo "   - PostgreSQL: $EC2_HOST:5432"
+          echo ""
+          echo "📝 Next steps:"
+          echo "   1. Visit n8n UI and log in with your credentials"
+          echo "   2. Verify workflows are imported"
+          echo "   3. Check database with Adminer"

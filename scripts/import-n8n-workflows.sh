@@ -8,6 +8,7 @@ echo "=========================================="
 SERVICE_NAME="${SERVICE_NAME:-n8n}"
 WORKFLOW_SOURCE_DIR="${WORKFLOW_SOURCE_DIR:-workflows}"
 TMP_DIR="/tmp/n8n-workflows-import"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.production.yml}"
 
 die() {
   echo "❌ [import-n8n-workflows] $*" >&2
@@ -22,7 +23,11 @@ if ! docker compose version >/dev/null 2>&1; then
   die "docker compose plugin is not available."
 fi
 
-if ! docker compose ps --services | grep -qx "${SERVICE_NAME}"; then
+if [ ! -f "${COMPOSE_FILE}" ]; then
+  die "Compose file '${COMPOSE_FILE}' not found."
+fi
+
+if ! docker compose -f "${COMPOSE_FILE}" ps --services | grep -qx "${SERVICE_NAME}"; then
   die "Service '${SERVICE_NAME}' not found in docker-compose stack."
 fi
 
@@ -31,7 +36,7 @@ if ! ls "${WORKFLOW_SOURCE_DIR}"/*.json >/dev/null 2>&1; then
   exit 0
 fi
 
-CONTAINER_ID="$(docker compose ps -q "${SERVICE_NAME}")"
+CONTAINER_ID="$(docker compose -f "${COMPOSE_FILE}" ps -q "${SERVICE_NAME}")"
 if [[ -z "${CONTAINER_ID}" ]]; then
   die "Service '${SERVICE_NAME}' is not running. Start docker compose first."
 fi

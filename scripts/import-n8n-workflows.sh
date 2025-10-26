@@ -24,6 +24,10 @@ if ! command -v curl >/dev/null 2>&1; then
   die "curl is not installed on this host."
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  die "jq is not installed on this host."
+fi
+
 if [ ! -f "${COMPOSE_FILE}" ]; then
   die "Compose file '${COMPOSE_FILE}' not found."
 fi
@@ -65,18 +69,35 @@ for file in "${WORKFLOW_SOURCE_DIR}"/*.json; do
   workflow_name=$(basename "$file" .json)
   echo "   Processing: ${workflow_name}"
   
+  # Read the workflow JSON and wrap it with required metadata
+  workflow_content=$(cat "$file")
+  
+  # Create the payload with name and workflow data
+  payload=$(jq -n \
+    --arg name "$workflow_name" \
+    --argjson workflow "$workflow_content" \
+    '{
+      name: $name,
+      nodes: $workflow.nodes,
+      connections: $workflow.connections,
+      settings: ($workflow.settings // {}),
+      staticData: ($workflow.staticData // null),
+      tags: ($workflow.tags // []),
+      pinData: ($workflow.pinData // {}),
+      versionId: ($workflow.versionId // null)
+    }')
+  
   # Check if workflow already exists by name
   existing_id=$(curl -s -u "${N8N_BASIC_AUTH_USER}:${N8N_BASIC_AUTH_PASSWORD}" \
     "${N8N_API_URL}/workflows" | \
-    grep -o "\"id\":\"[^\"]*\"[^}]*\"name\":\"${workflow_name}\"" | \
-    grep -o "\"id\":\"[^\"]*\"" | cut -d'"' -f4 | head -1 || true)
+    jq -r ".data[] | select(.name == \"${workflow_name}\") | .id" | head -1 || true)
   
   if [[ -n "${existing_id}" ]]; then
     echo "      Updating existing workflow (ID: ${existing_id})"
     response=$(curl -s -w "\n%{http_code}" -u "${N8N_BASIC_AUTH_USER}:${N8N_BASIC_AUTH_PASSWORD}" \
       -X PUT \
       -H "Content-Type: application/json" \
-      -d @"${file}" \
+      -d "$payload" \
       "${N8N_API_URL}/workflows/${existing_id}")
     http_code=$(echo "$response" | tail -n1)
     if [[ "${http_code}" =~ ^2[0-9][0-9]$ ]]; then
@@ -84,13 +105,14 @@ for file in "${WORKFLOW_SOURCE_DIR}"/*.json; do
       ((imported_count++))
     else
       echo "      ⚠️  Failed to update (HTTP ${http_code})"
+      echo "$response" | head -n-1 | jq '.' 2>/dev/null || echo "$response" | head -n-1
     fi
   else
     echo "      Creating new workflow"
     response=$(curl -s -w "\n%{http_code}" -u "${N8N_BASIC_AUTH_USER}:${N8N_BASIC_AUTH_PASSWORD}" \
       -X POST \
       -H "Content-Type: application/json" \
-      -d @"${file}" \
+      -d "$payload" \
       "${N8N_API_URL}/workflows")
     http_code=$(echo "$response" | tail -n1)
     if [[ "${http_code}" =~ ^2[0-9][0-9]$ ]]; then
@@ -98,6 +120,7 @@ for file in "${WORKFLOW_SOURCE_DIR}"/*.json; do
       ((imported_count++))
     else
       echo "      ⚠️  Failed to create (HTTP ${http_code})"
+      echo "$response" | head -n-1 | jq '.' 2>/dev/null || echo "$response" | head -n-1
     fi
   fi
 done

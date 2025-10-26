@@ -19,10 +19,32 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
+          # Verify secrets are set
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "❌ Error: EC2_SSH_KEY secret is not set or is empty"
+            exit 1
+          fi
+          if [ -z "$EC2_HOST" ]; then
+            echo "❌ Error: EC2_HOST secret is not set or is empty"
+            exit 1
+          fi
+          
+          # Setup SSH
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          
+          # Verify key was written
+          if [ ! -s ~/.ssh/id_rsa ]; then
+            echo "❌ Error: SSH key file is empty after writing"
+            exit 1
+          fi
+          
+          # Add host to known_hosts
+          echo "Adding $EC2_HOST to known_hosts..."
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          
+          echo "✅ SSH setup complete"
 
       - name: Copy files to EC2
         env:

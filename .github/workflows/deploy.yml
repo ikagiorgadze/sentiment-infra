@@ -60,17 +60,31 @@ jobs:
           
           echo "✅ SSH setup complete"
 
+      - name: Test SSH Connection
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          echo "Testing SSH connection to $EC2_USER@$EC2_HOST..."
+          ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 $EC2_USER@$EC2_HOST "echo 'SSH connection successful'; pwd"
+
       - name: Copy files to EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          ssh $EC2_USER@$EC2_HOST "mkdir -p ~/sentiment-infra"
+          echo "Creating directory on EC2..."
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_HOST "mkdir -p ~/sentiment-infra"
+          
+          echo "Copying files to EC2..."
           rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='.env' \
             ./ $EC2_USER@$EC2_HOST:~/sentiment-infra/
+          
+          echo "✅ Files copied successfully"
 
       - name: Create .env file on EC2
         env:
@@ -85,7 +99,8 @@ jobs:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           N8N_CORS_ORIGIN: ${{ secrets.N8N_CORS_ORIGIN }}
         run: |
-          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/setup-env.sh" <<EOF
+          echo "Creating .env file on EC2..."
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/setup-env.sh" <<EOF
           $POSTGRES_USER
           $POSTGRES_PASSWORD
           $POSTGRES_DB
@@ -95,27 +110,31 @@ jobs:
           $WEBHOOK_URL
           $N8N_CORS_ORIGIN
           EOF
+          echo "✅ Environment file created"
 
       - name: Deploy with Docker Compose
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/deploy.sh"
+          echo "Running deployment script..."
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/deploy.sh"
 
       - name: Import n8n workflows
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/import-n8n-workflows.sh"
+          echo "Importing n8n workflows..."
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/import-n8n-workflows.sh"
 
       - name: Health check
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          ssh $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/health-check.sh"
+          echo "Running health check..."
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $EC2_USER@$EC2_HOST "cd ~/sentiment-infra && bash scripts/health-check.sh"
 
       - name: Deployment Summary
         env:

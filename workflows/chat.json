@@ -1,0 +1,249 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"sonar\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a research assistant gathering current information about political events. Provide factual, detailed context with sources. Include key dates, actors, decisions, and statements from multiple perspectives.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.chatInput + \"\\n\\nProvide comprehensive context about this question including:\\n- Recent news and developments\\n- Key actors and their positions\\n- Timeline of events\\n- Multiple perspectives\\n- Credible sources\") }}\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 2000,\n  \"return_citations\": true,\n  \"return_images\": false,\n  \"search_recency_filter\": \"month\"\n}\n",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        -208
+      ],
+      "id": "a8ce3e1a-9ef8-47f3-be03-d013ed178c89",
+      "name": "Get Current News Context",
+      "credentials": {
+        "perplexityApi": {
+          "id": "FszUDNtKdVxebpiH",
+          "name": "Perplexity account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CURRENT EVENT CONTEXT (from Perplexity):\n{{ $('Get Current News Context').item.json.choices[0].message.content }}\n\nNEWS SOURCES:\n{{ $('Get Current News Context').item.json.citations ? $('Get Current News Context').item.json.citations.join('\\n') : 'No citations available' }}\n\nUSER QUESTION:\n{{ $('Normalize Input').item.json.chatInput }}\n\nProvide a comprehensive political science analysis.",
+        "options": {
+          "systemMessage": "=You are an expert political scientist with deep knowledge of comparative politics, electoral systems, democratization, authoritarianism, political institutions, social movements, and international relations.\n\nWORKFLOW:\n1. You will receive CURRENT EVENT CONTEXT from Perplexity API (recent news articles)\n2. You will receive the USER'S QUESTION\n3. Use your MCP tools (OpenAlex) to search academic literature for:\n   - Relevant political science theories and frameworks\n   - Historical precedents and comparative case studies\n   - Empirical research findings across regions\n   - Regional and area studies expertise when relevant\n\n4. Synthesize a comprehensive analysis that:\n   - Summarizes the current situation (from news context)\n   - Applies relevant theoretical frameworks (from academic research)\n   - Cites historical precedents and comparative cases (from MCP tools)\n   - Provides evidence-based strategic assessment\n   - Acknowledges uncertainties, competing perspectives, and limitations\n\n5. ALWAYS cite sources properly:\n   - News: [Source name from Perplexity]\n   - Academic: [Author(s) Year, Journal/Publisher, DOI if available]\n\n6. Structure your response with clear sections:\n  - Key Takeaways (So-What) - 3–7 bullets with the most consequential insights; no background.\n- Signals to Watch - Leading + lagging indicators, what movement would confirm/deny your view.\n- Implications by Stakeholder - Government, opposition, public sentiment, markets/IOs; concise, impact-oriented.\n- Near-Term Scenarios (2–6 weeks) - 2–4 plausible paths with calibrated probabilities (sum ≈ 100%).\n- Risks & Uncertainties - Top 3–5 risk factors; specify unknowns and data that would reduce uncertainty.\n- Recommended Options - 2–4 actions with pros/cons, prerequisites, and likely second-order effects.\n- Monitoring Plan - Concrete items to track (events, metrics, statements), with expected thresholds.\n\n\n\n\nTOOLS AVAILABLE (OpenAlex MCP):\n- search_works: Search scholarly works by keywords, concepts, topics\n- search_authors: Find scholars by name, institution, research area, country\n- retrieve_author_works: Get all publications by a specific author\n- autocomplete_authors: Disambiguate author names and affiliations\n- filter_by_institution: Find research from specific universities/think tanks\n- filter_by_country: Find research from specific countries or regions\n\nRESEARCH STRATEGY:\n- Start broad: Search for general theories and frameworks\n- Then narrow: Search for regional cases, country-specific studies\n- Use author search to find area experts (e.g., scholars at regional universities)\n- Cross-reference multiple sources before drawing conclusions\n- Acknowledge when literature is sparse for specific regions or topics\n\nUse multiple tools strategically to build comprehensive, globally-informed analysis. Ground all claims in peer-reviewed evidence.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        -208
+      ],
+      "id": "7aca7ef7-736e-4d5c-9278-d76205fbc303",
+      "name": "Political Science Expert"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "options": {
+          "maxTokens": 4000,
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        632,
+        16
+      ],
+      "id": "77bf37ba-7a9f-4410-9c47-f0d4fc71041d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ftfBSNeamb0UOYeN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from previous nodes\nconst aiOutput = $input.item.json;\nconst aiResponse =\n  aiOutput.output ||\n  aiOutput.text ||\n  aiOutput.response ||\n  \"No analysis generated\";\nconst perplexityData = $(\"Get Current News Context\").item.json;\nconst userQuestion = $(\"Normalize Input\").item.json.chatInput;\n\n// Extract citations safely\nlet citations = [];\nif (perplexityData.citations && Array.isArray(perplexityData.citations)) {\n  citations = perplexityData.citations;\n}\n\n// Extract token usage if available\nlet tokenUsage = {};\nif (perplexityData.usage) {\n  tokenUsage.perplexity = perplexityData.usage;\n}\n\n// Format the response\nconst formattedResponse = {\n  question: userQuestion,\n  analysis: aiResponse,\n  metadata: {\n    news_sources: citations,\n    timestamp: new Date().toISOString(),\n    model: \"gpt-4o\",\n    mcp_tools_used: [\"OpenAlex (250M+ scholarly works, citations, authors)\"],\n    perplexity_model:\n      perplexityData.model || \"llama-3.1-sonar-large-128k-online\",\n    token_usage: tokenUsage,\n  },\n};\n\n// Return formatted data\nreturn [\n  {\n    json: formattedResponse,\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        -208
+      ],
+      "id": "08bf6f98-bfca-4f78-8b4a-d53e5e77e290",
+      "name": "Format Analysis"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.analysis }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        -208
+      ],
+      "id": "f0316e0f-5fa4-42d9-b1d4-bd2825330b8f",
+      "name": "Send Analysis to User"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-mcp.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        760,
+        16
+      ],
+      "id": "7815dbbf-9dfb-469c-a03b-82f98943708c",
+      "name": "OpenAlex Server",
+      "credentials": {
+        "mcpClientApi": {
+          "id": "SUky71Br3ctLILXg",
+          "name": "Openalex credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ad221486-cf3d-43e0-98b2-390192147713",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        -208
+      ],
+      "id": "26a0f9f5-6374-4748-90d7-d6067cec37ca",
+      "name": "Webhook",
+      "webhookId": "ad221486-cf3d-43e0-98b2-390192147713"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizes incoming payloads (JSON, form, plain text) into { chatInput, threadId, client:{} }\n// so downstream nodes can safely use {{$json.chatInput}}.\n\nconst headers = $json.headers ?? {};\nconst ct = String(\n  headers[\"content-type\"] || headers[\"Content-Type\"] || \"\",\n).toLowerCase();\n\nlet body = $json.body ?? {};\nlet query = $json.query ?? {};\nlet chatInput = \"\";\n\n// 1) Try common JSON/form keys\nfunction pick(o) {\n  if (!o) return \"\";\n  return o.chatInput ?? o.message ?? o.text ?? o.q ?? o.prompt ?? \"\";\n}\n\nif (ct.includes(\"application/json\")) {\n  chatInput = pick(body);\n} else if (\n  ct.includes(\"application/x-www-form-urlencoded\") ||\n  ct.includes(\"multipart/form-data\")\n) {\n  chatInput = pick(body);\n} else if (ct.includes(\"text/plain\")) {\n  // For raw text bodies\n  chatInput = String($json.body ?? \"\").trim();\n}\n\n// 2) Fallbacks: query string and root-level JSON\nif (!chatInput) chatInput = pick(query);\nif (!chatInput) chatInput = String($json.chatInput ?? \"\").trim();\n\n// 3) Final trim and guardrail\nchatInput = String(chatInput || \"\").trim();\nif (!chatInput) {\n  // You can also throw to short-circuit the workflow:\n  // throw new Error('Missing chatInput');\n  return [{ json: { error: \"Missing chatInput\", received: $json } }];\n}\n\n// Optional threading and client metadata\nconst threadId =\n  body.threadId ?? query.threadId ?? headers[\"x-thread-id\"] ?? null;\n\nreturn [\n  {\n    json: {\n      chatInput,\n      threadId,\n      client: {\n        ip: headers[\"x-forwarded-for\"] ?? headers[\"cf-connecting-ip\"] ?? null,\n        ua: headers[\"user-agent\"] ?? null,\n        origin: headers.origin ?? null,\n        referer: headers.referer ?? null,\n      },\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -208
+      ],
+      "id": "7bf6ed99-d03b-44f5-ac42-c8ecfe38ce9e",
+      "name": "Normalize Input"
+    }
+  ],
+  "connections": {
+    "Get Current News Context": {
+      "main": [
+        [
+          {
+            "node": "Political Science Expert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Political Science Expert": {
+      "main": [
+        [
+          {
+            "node": "Format Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Political Science Expert",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Analysis": {
+      "main": [
+        [
+          {
+            "node": "Send Analysis to User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAlex Server": {
+      "ai_tool": [
+        [
+          {
+            "node": "Political Science Expert",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Get Current News Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6b2cd1a66d40c4caef13c8b83faa61b3718613d8dc26636859e6b32022cebfe6"
+  }
+}

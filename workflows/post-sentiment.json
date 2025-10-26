@@ -1,0 +1,486 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {
+          "responseFormat": "json_object",
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        240
+      ],
+      "id": "35ecd63e-8384-4eb5-a86f-64b8ad454d4b",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "ftfBSNeamb0UOYeN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "post_id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        432,
+        -80
+      ],
+      "id": "e3ac6cf1-44c3-4023-8c58-32e326ea24c3",
+      "name": "Final Normalization before Insert operation"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "sentiments",
+          "mode": "list",
+          "cachedResultName": "sentiments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "post_id": "={{ $json.post_id }}",
+            "comment_id": "={{ $json.comment_id }}",
+            "sentiment": "={{ $json.analysis_text }}",
+            "sentiment_category": "={{ $json.sentiment_category_name }}",
+            "confidence": "={{ $json.confidence }}",
+            "probabilities": "={{ $json.probabilities }}",
+            "polarity": "={{ $json.polarity }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comment_id",
+              "displayName": "comment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment_category",
+              "displayName": "sentiment_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "probabilities",
+              "displayName": "probabilities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "polarity",
+              "displayName": "polarity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        656,
+        -80
+      ],
+      "id": "3181bd85-be59-43fe-8f83-7719abef8c55",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Context:\nPOST: {{ $('Combine Sentiment Analysis Results').item.json.post_content }}\n\nScores:\n- Winner label: {{$json.sentiment}}\n- Confidence: {{$json.confidence}}\n- Probabilities: Positive={{$json.probabilities.Positive}}, Negative={{$json.probabilities.Negative}}, Neutral={{$json.probabilities.Neutral}}\n- Polarity: {{$json.polarity}}\n\nRequirements:\n- Base conclusions on the numbers; use the texts only to choose phrasing (e.g., \"supportive\", \"inquiring\").\n- \"certainty\" policy:\n - \"high\" if confidence ≥ 0.80 and (max probability − second max) ≥ 0.20\n - \"medium\" if confidence ≥ 0.60\n - \"low\" otherwise.\n- 1–2 sentences, plain language.\n\nReturn JSON only:\n{\n \"post_id\": {{ $json.post_id }}\n \"analysis_text\": \"...\"\n}\n",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a precise sentiment analyst. Explain the poster's tone grounded in the numeric scores and the texts. Do not invent facts. Be concise (1–2 sentences). Return strict JSON only."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        80,
+        16
+      ],
+      "id": "ab162fff-029d-4ffc-9552-23292eaef288",
+      "name": "Textual Sentiment Analysis Generation"
+    },
+    {
+      "parameters": {
+        "jsCode": "function clamp01(x) {\n  const n = Number(x);\n  return isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;\n}\nfunction safe(analyses, name) {\n  return analyses?.[name] || { strength: 0, confidence: 0 };\n}\n\nreturn items.map(({ json: j }) => {\n  const A = j.analyses || {};\n  const P = safe(A, \"Positive\");\n  const N = safe(A, \"Negative\");\n  const Z = safe(A, \"Neutral\");\n\n  const ps = clamp01(P.strength),\n    pc = clamp01(P.confidence);\n  const ns = clamp01(N.strength),\n    nc = clamp01(N.confidence);\n  const zs = clamp01(Z.strength),\n    zc = clamp01(Z.confidence);\n\n  // confidence-weighted strengths\n  const pEff = ps * (0.5 + 0.5 * pc);\n  const nEff = ns * (0.5 + 0.5 * nc);\n  const zEff = zs * (0.5 + 0.5 * zc);\n  const sum = pEff + nEff + zEff || 1;\n\n  const probabilities = {\n    Positive: pEff / sum,\n    Negative: nEff / sum,\n    Neutral: zEff / sum,\n  };\n\n  const sentiment = Object.entries(probabilities).sort(\n    (a, b) => b[1] - a[1],\n  )[0][0];\n\n  const overall_confidence = Math.min(\n    1,\n    probabilities.Positive * pc +\n      probabilities.Negative * nc +\n      probabilities.Neutral * zc,\n  );\n\n  const polarity = probabilities.Positive - probabilities.Negative;\n  const confRounded = Math.round(overall_confidence * 100) / 100;\n\n  return {\n    json: {\n      post_id: j.post_id,\n      post_content: j.post_content ?? null,\n      sentiment_category_name: sentiment,\n      confidence: confRounded,\n      probabilities,\n      polarity,\n    },\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -80
+      ],
+      "id": "0be04955-fd86-4024-a8ae-461e7aac576a",
+      "name": "Prepare/Calculate Sentiment rows"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregates all incoming items by post_id.\n// Produces exactly one item per post_id with analyses keyed by category.\n//\n// If multiple results for the same category arrive, it keeps the one with\n// the highest confidence; you can change to average if you prefer.\n\nfunction keepBest(prev, next) {\n if (!prev) return next;\n return (Number(next.confidence) > Number(prev.confidence)) ? next : prev;\n}\n\nconst byPost = new Map();\n\nfor (const { json } of items) {\n const id = json.post_id;\n const text = json.post_content ?? json.post_text ?? null;\n const sa = json.sentimentAnalysis || {};\n const cat = sa.category || 'Unknown';\n\n if (!byPost.has(id)) {\n byPost.set(id, {\n post_id: id,\n post_content: text,\n analyses: {\n Positive: null,\n Negative: null,\n Neutral: null,\n },\n });\n }\n\n const bucket = byPost.get(id);\n // Normalize the record we store\n const record = {\n category: cat,\n strength: Number(sa.strength ?? 0),\n confidence: Number(sa.confidence ?? 0),\n };\n\n if (cat in bucket.analyses) {\n bucket.analyses[cat] = keepBest(bucket.analyses[cat], record);\n } else {\n // If an unexpected category appears, keep it as extra key\n bucket.analyses[cat] = keepBest(bucket.analyses[cat], record);\n }\n}\n\n// Fill any missing categories with zeroed objects to keep shape stable\nfor (const v of byPost.values()) {\n for (const k of ['Positive', 'Negative', 'Neutral']) {\n if (!v.analyses[k]) v.analyses[k] = { category: k, strength: 0, confidence: 0 };\n }\n}\n\nreturn Array.from(byPost.values()).map(j => ({ json: j }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        -80
+      ],
+      "id": "1ebda978-565c-46cc-9632-cd135f027a31",
+      "name": "Combine Sentiment Analysis Results"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.post_content }}",
+        "options": {
+          "categories": "Negative",
+          "systemPromptTemplate": "You are highly intelligent and accurate sentiment analyzer. Analyze the sentiment of the provided text. Categorize it into one of the following: {categories}. Use the provided formatting instructions. Only output the JSON.",
+          "includeDetailedResults": true,
+          "enableAutoFixing": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.sentimentAnalysis",
+      "typeVersion": 1.1,
+      "position": [
+        -944,
+        112
+      ],
+      "id": "e30b4cf0-9a99-424f-b905-5aa97a6a7231",
+      "name": "Negative Sentiment Analysis",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.post_content }}",
+        "options": {
+          "categories": "Neutral",
+          "systemPromptTemplate": "You are highly intelligent and accurate sentiment analyzer. Analyze the sentiment of the provided text. Categorize it into one of the following: {categories}. Use the provided formatting instructions. Only output the JSON.",
+          "includeDetailedResults": true,
+          "enableAutoFixing": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.sentimentAnalysis",
+      "typeVersion": 1.1,
+      "position": [
+        -944,
+        -80
+      ],
+      "id": "66983f50-5696-48b9-b54d-9bf62bcf0e78",
+      "name": "Neutral Sentiment Analysis",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.post_content }}",
+        "options": {
+          "categories": "Positive",
+          "systemPromptTemplate": "You are highly intelligent and accurate sentiment analyzer. Analyze the sentiment of the provided text. Categorize it into one of the following: {categories}. Use the provided formatting instructions. Only output the JSON.",
+          "includeDetailedResults": true,
+          "enableAutoFixing": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.sentimentAnalysis",
+      "typeVersion": 1.1,
+      "position": [
+        -944,
+        -480
+      ],
+      "id": "6b16b098-ba78-41f7-b54e-0e3f9b9344df",
+      "name": "Positive Sentiment Analysis",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -592,
+        -96
+      ],
+      "id": "92156633-71b5-45ef-a04f-ac9cc01a71be",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -880,
+        -256
+      ],
+      "id": "287093a9-39e9-48bf-97f8-6ea4fe40df84",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ftfBSNeamb0UOYeN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1392,
+        -80
+      ],
+      "id": "5b42c437-b25c-4176-9901-197c375cef1c",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "connections": {
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Textual Sentiment Analysis Generation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Normalization before Insert operation": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        []
+      ]
+    },
+    "Textual Sentiment Analysis Generation": {
+      "main": [
+        [
+          {
+            "node": "Final Normalization before Insert operation",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare/Calculate Sentiment rows": {
+      "main": [
+        [
+          {
+            "node": "Final Normalization before Insert operation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Textual Sentiment Analysis Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Sentiment Analysis Results": {
+      "main": [
+        [
+          {
+            "node": "Prepare/Calculate Sentiment rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Negative Sentiment Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Neutral Sentiment Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Positive Sentiment Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Combine Sentiment Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Neutral Sentiment Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Negative Sentiment Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Positive Sentiment Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Positive Sentiment Analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Neutral Sentiment Analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Negative Sentiment Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6b2cd1a66d40c4caef13c8b83faa61b3718613d8dc26636859e6b32022cebfe6"
+  }
+}

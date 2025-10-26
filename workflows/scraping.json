@@ -1,0 +1,2262 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:3000/api/webhooks/scrape-complete",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1824,
+        624
+      ],
+      "id": "67624265-390d-4f98-acd5-a1492001dc47",
+      "name": "Notify Backend (Completion - Page)"
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeItems(nodeName) {\n  try {\n    return $items(nodeName, 0, 0) ?? [];\n  } catch (err) {\n    return [];\n  }\n}\n\nconst normalizeItems = safeItems('Normalize');\nconst normalize = normalizeItems[0]?.json ?? {};\nconst pageMetaItems = safeItems('Persist + Carry Page Metadata');\nconst pageMeta = pageMetaItems[0]?.json ?? {};\n\nconst requestId = pageMeta.request_id || normalize.request_id;\nconst authUserId = pageMeta.auth_user_id || normalize.auth_user_id;\n\nif (!requestId || !authUserId) {\n  throw new Error('Missing request_id or auth_user_id for completion payload (page branch)');\n}\n\nconst postItems = safeItems('Upsert Post');\nconst commentItems = safeItems('Upsert Comments');\n\nconst posts = postItems\n  .map(item => item.json.id ?? item.json.post_id ?? item.json.full_url)\n  .filter(Boolean);\nconst comments = commentItems\n  .map(item => item.json.id ?? item.json.comment_id ?? item.json.full_url)\n  .filter(Boolean);\n\nreturn [{\n  json: {\n    stage: 'posts_inserted',\n    auth_user_id: authUserId,\n    request_id: requestId,\n    post_ids: posts,\n    comment_ids: comments,\n    post_count: posts.length,\n    comment_count: comments.length,\n    timestamp: new Date().toISOString(),\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2048,
+        624
+      ],
+      "id": "6cb08087-2e45-4953-b65f-f030c1b1463d",
+      "name": "Compose Completion Payload (Page)"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2272,
+        624
+      ],
+      "id": "e6a9dd2f-20ee-453d-9ae1-13bdb31a6040",
+      "name": "Wait 3s (Notify Page)",
+      "webhookId": "ca607994-06c1-4882-9b90-fc1fa02f8fb1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:3000/api/webhooks/scrape-complete",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"stage\": \"posts_inserted\",\n  \"auth_user_id\": \"{{ $json.auth_user_id }}\",\n  \"request_id\": \"{{ $json.request_id }}\",\n  \"timestamp\": \"{{ $json.timestamp }}\",\n  \"post_ids\": {{ JSON.stringify($json.post_ids ?? []) }},\n  \"comment_ids\": {{ JSON.stringify($json.comment_ids ?? []) }},\n  \"post_count\": {{ $json.post_count }},\n  \"comment_count\": {{ $json.comment_count }}\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        192,
+        688
+      ],
+      "id": "577ca38e-357d-4d73-bedd-169f32fb1e8d",
+      "name": "Notify Backend (Completion - Post)"
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeItems(nodeName) {\n  try {\n    return $items(nodeName, 0, 0) ?? [];\n  } catch (err) {\n    return [];\n  }\n}\n\nconst normalizeItems = safeItems(\"Normalize\");\nconst normalize = normalizeItems[0]?.json ?? {};\nconst postMetaItems = safeItems(\"Persist + Carry Post Metadata\");\nconst postMeta = postMetaItems[0]?.json ?? {};\n\nconst requestId = postMeta.request_id || normalize.request_id;\nconst authUserId = postMeta.auth_user_id || normalize.auth_user_id;\n\nif (!requestId || !authUserId) {\n  throw new Error(\n    \"Missing request_id or auth_user_id for completion payload (post branch)\",\n  );\n}\n\nconst postItems = safeItems(\"Upsert Post\");\nconst commentItems = safeItems(\"Upsert Comments\");\n\nconst posts = postItems\n  .map((item) => item.json.id ?? item.json.post_id ?? item.json.full_url)\n  .filter(Boolean);\nconst comments = commentItems\n  .map((item) => item.json.id ?? item.json.comment_id ?? item.json.full_url)\n  .filter(Boolean);\n\nreturn [\n  {\n    json: {\n      stage: \"posts_inserted\",\n      auth_user_id: authUserId,\n      request_id: requestId,\n      post_ids: posts,\n      comment_ids: comments,\n      post_count: posts.length,\n      comment_count: comments.length,\n      timestamp: new Date().toISOString(),\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        688
+      ],
+      "id": "05fc2e06-12f9-4088-975c-9ee6b9e94ad3",
+      "name": "Compose Completion Payload (Post)"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -256,
+        688
+      ],
+      "id": "c8fa6a64-08a5-4476-bce9-961c2b5dc89d",
+      "name": "Wait 3s (Notify Post)",
+      "webhookId": "57a46777-c5a4-4b50-81e8-ed3d77992ccf"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.apify.com/v2/actor-runs/' + $('Early Acknowledge (Page)').item.json.apify_run_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2720,
+        736
+      ],
+      "id": "3b61ae5a-bc90-4561-add5-e62940f424c3",
+      "name": "Poll Run (Page)",
+      "credentials": {
+        "apifyApi": {
+          "id": "GQukDBhkvkXLiLDN",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2272,
+        832
+      ],
+      "id": "7387abc9-7415-475a-a128-200b9d56bc98",
+      "name": "Wait 10s (Page)",
+      "webhookId": "1ca095c9-c283-42d6-b47e-7fe1a1fe71ab"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH in_params AS (\n  SELECT\n    NULLIF('{{ $json.post_url.replace(/'/g,\"''\") }}','')               AS full_url,\n    NULLIF('{{ $json.post_content?.replace(/'/g,\"''\") }}','')          AS post_content,\n    NULLIF('{{ $json.page_url?.replace(/'/g,\"''\") }}','')              AS page_url,\n    /* If your column is timestamptz, keep as ::timestamptz.\n       If it's timestamp (without tz), use AT TIME ZONE 'UTC' to drop tz. */\n    (\n      CASE\n        WHEN '{{ $json.posted_at }}' = '' THEN NULL\n        ELSE '{{ $json.posted_at }}'::timestamptz\n      END\n    )                                                                  AS posted_at,\n    NULLIF('{{ $(\"Normalize\").first().json?.auth_user_id }}','')::uuid AS auth_user_id\n),\n-- Upsert page if present; page_name is not known here, keep NULL\nupsert_page AS (\n  INSERT INTO pages (page_url, page_name)\n  SELECT p.page_url, NULL\n  FROM in_params p\n  WHERE p.page_url IS NOT NULL\n  ON CONFLICT (page_url) DO UPDATE\n    SET page_name = COALESCE(EXCLUDED.page_name, pages.page_name)\n  RETURNING id, page_url\n),\n-- Insert/Upsert post; attach page_id if we have one; update fields if provided\ninserted_post AS (\n  INSERT INTO public.posts (page_id, full_url, content, posted_at)\n  SELECT\n    (SELECT id FROM upsert_page),  -- NULL if no page_url\n    p.full_url,\n    p.post_content,\n    /* If posts.posted_at is timestamp (without tz), use:\n       (p.posted_at AT TIME ZONE 'UTC') instead of p.posted_at */\n    p.posted_at\n  FROM in_params p\n  WHERE p.full_url IS NOT NULL\n  ON CONFLICT (full_url) DO UPDATE\n    SET\n      page_id   = COALESCE((SELECT id FROM upsert_page), posts.page_id),\n      content   = COALESCE(EXCLUDED.content, posts.content),\n      posted_at = COALESCE(EXCLUDED.posted_at, posts.posted_at)\n  RETURNING id, page_id, full_url, content, posted_at\n),\n-- Optional: grant user access if provided; ignore duplicates\ngranted_access AS (\n  INSERT INTO user_post_access (auth_user_id, post_id, granted_at, granted_by)\n  SELECT \n    p.auth_user_id,\n    ip.id,\n    NOW(),\n    p.auth_user_id\n  FROM in_params p\n  JOIN inserted_post ip ON TRUE\n  WHERE p.auth_user_id IS NOT NULL\n  ON CONFLICT (auth_user_id, post_id) DO NOTHING\n)\nSELECT * FROM inserted_post;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        864,
+        496
+      ],
+      "id": "c6de05c8-fb33-453f-8872-7e073792e3b8",
+      "name": "Upsert Post",
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Output: [{ json: { post_url, post_content, page_url } }, ...]\n\nfunction cleanUrl(u) {\n  return String(u ?? '').replace(/[?#].*$/, '');\n}\n\nconst unique = new Map();\n\n// Build a lookup: post_url → page_url from the previous node (if it ran)\nlet pageByPost = new Map();\ntry {\n  const prevItems = $('Extract Posts Data').all().map(i => i.json).filter(Boolean);\n  if (prevItems.length) {\n    pageByPost = new Map(\n      prevItems\n        .filter(x => x.post_url)\n        .map(x => [cleanUrl(x.post_url), x.page_url ?? null])\n    );\n  }\n} catch (e) {\n  // Node may not exist or may not have run; ignore and default to null page_url\n}\n\n// Collect unique posts from \"Extract Post Data\"\nfor (const item of $('Extract Post Data').all()) {\n  const { post_url, post_content, posted_at } = item.json;\n  if (!post_url) continue;\n\n  const key = cleanUrl(post_url);\n  if (!unique.has(key)) {\n    unique.set(key, {\n      post_url,\n      post_content: post_content ?? null,\n      page_url: pageByPost.get(key) ?? null,\n      posted_at: posted_at\n    });\n  }\n}\n\n// Return as n8n items\nreturn Array.from(unique.values()).map(v => ({ json: v }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        496
+      ],
+      "id": "d17e8a59-b69b-4c7b-a080-27bd8404f1ce",
+      "name": "Extract Unique Posts"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deduplicate users from the incoming comment rows\n// Input: items from \"Extract Post Data\" (each has user_profile_id, user_full_name)\n// Output: [{ json: { user_profile_id, user_full_name } }, ...] unique by user_profile_id\n\nfunction normId(id) {\n  return String(id ?? '').trim().toLowerCase(); // handles numeric & pfbid* strings\n}\n\nconst byId = new Map();\n\nfor (const { json } of $input.all()) {\n  const idRaw = json.user_profile_id;\n  const id = normId(idRaw);\n  if (!id) continue;\n\n  const name = (json.user_full_name ?? '').trim() || null;\n\n  if (!byId.has(id)) {\n    byId.set(id, { user_profile_id: idRaw, user_full_name: name });\n  } else {\n    // Prefer a non-empty name if we didn't have one yet\n    const cur = byId.get(id);\n    if (!cur.user_full_name && name) cur.user_full_name = name;\n  }\n}\n\n// Return one n8n item per unique user\nreturn Array.from(byId.values()).map(u => ({ json: u }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        496
+      ],
+      "id": "3d92925e-6e63-4155-94a1-8cc34d2c10fb",
+      "name": "Extract Unique Users"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.users (fb_profile_id, full_name)\nVALUES (\n  $$ {{ $json.user_profile_id }} $$,\n  NULLIF(btrim($$ {{ $json.user_full_name || \"\" }} $$), '')\n)\nON CONFLICT (fb_profile_id) DO UPDATE\nSET full_name = EXCLUDED.full_name\nRETURNING id, fb_profile_id, full_name;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        496
+      ],
+      "id": "03bfadde-2683-4e11-b79c-74097ef3e248",
+      "name": "Upsert Users",
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "77be4b11-31aa-482c-ad2b-1ef0e9100f84",
+              "name": "post_url",
+              "value": "={{ $json.facebookUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "5fb244f6-4562-46ff-94eb-d3ff4333e367",
+              "name": "post_content",
+              "value": "={{ $json.postTitle }}",
+              "type": "string"
+            },
+            {
+              "id": "344a8041-5125-42c3-b6fe-01484a36c2a3",
+              "name": "comment_url",
+              "value": "={{ $json.commentUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "455742a2-7634-4fe3-81b1-f5fb0c9cc16b",
+              "name": "comment_content",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "1b23bc17-0e8e-4e68-90e6-abc6dd511787",
+              "name": "user_full_name",
+              "value": "={{ $json.profileName }}",
+              "type": "string"
+            },
+            {
+              "id": "a65a9ff7-941a-45a9-aac8-333fac12f893",
+              "name": "user_profile_id",
+              "value": "={{ $json.profileId }}",
+              "type": "string"
+            },
+            {
+              "id": "7995c596-6c7d-4d40-a505-3905072ab319",
+              "name": "posted_at",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -32,
+        496
+      ],
+      "id": "65b69619-8c58-4b2a-b3bc-e8be98db0196",
+      "name": "Extract Post Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "=apify_run_id",
+              "value": "={{ $json.id }}",
+              "type": "string",
+              "id": "08a7b5b3-418a-4654-9e06-2faf902809ee"
+            },
+            {
+              "name": "=apify_dataset_id",
+              "value": "={{ $json.defaultDatasetId }}",
+              "type": "string",
+              "id": "ca237ba8-489d-4e17-961e-9d13cfafce71"
+            },
+            {
+              "name": "=apify_status",
+              "value": "={{ $json.status }}",
+              "type": "string",
+              "id": "a5d3d0a8-1449-4b40-aa66-26f9f97d393d"
+            },
+            {
+              "name": "=apify_finished_at",
+              "value": "={{ $json.finishedAt }}",
+              "type": "string",
+              "id": "a3dba116-e765-4438-8bf9-963ea1c0cd2d"
+            },
+            {
+              "name": "=request_id",
+              "value": "={{ $node[\"Normalize\"].json.request_id }}",
+              "type": "string",
+              "id": "7c927fae-574c-4f19-99ce-dcde09c643f5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -928,
+        720
+      ],
+      "id": "b698be4b-843b-42c1-866a-accfa371859c",
+      "name": "Persist + Carry Post Metadata"
+    },
+    {
+      "parameters": {
+        "jsCode": "const urls = [];\n\nfor (const item of $(\"Canonicalize Post URL\").all()) {\n  urls.push(item.json.post_urls);\n}\n\nreturn { startUrls: urls[0] };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        1024
+      ],
+      "id": "3b910a2c-9065-4902-a271-10bc7dca58b4",
+      "name": "Prepare Start URLs (Post)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build startUrls from the \"Extract Posts Data\" node\n\nfunction cleanUrl(u) {\n  return String(u ?? '').trim().replace(/[?#].*$/, '');\n}\n\nconst rows = $('Extract Posts Data').all().map(i => i.json);\nconst seen = new Set();\nconst startUrls = [];\n\nfor (const r of rows) {\n  const url = cleanUrl(r.post_url);\n  if (!url) continue;\n  if (seen.has(url)) continue;\n  seen.add(url);\n  startUrls.push(url);\n}\n\n// Return one n8n item\nreturn [{ json: { startUrls } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        432
+      ],
+      "id": "1cce3b7a-0473-4d57-bfd7-2c61cab18c66",
+      "name": "Prepare Start URLs (Page)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node: Build Array Of Post URLs (fix)\n// Input: { post_urls: [...] } (from Normalize)\n// Output: Items: [{json:{post_url: <canonical>}}, ...]\nfunction cleanFacebookPostUrl(raw){\n  if(!raw) return null;\n  let s = String(raw).trim();\n  if(!/^https?:\\/\\//i.test(s)) s = 'https://' + s;\n  s = s.replace(/^http:\\/\\//i,'https://');\n  s = s.replace(/[?#].*$/,'');\n  if(!/^https:\\/\\/(www\\.)?facebook\\.com\\//i.test(s)) return null;\n  if(!/\\/$/.test(s)) s += '/';\n  return s;\n}\n\nconst posts = Array.isArray($json.post_urls) ? $json.post_urls : [];\nreturn posts\n  .map(u => cleanFacebookPostUrl(u))\n  .filter(Boolean)\n  .map(u => ({ json: { ...$json, post_url: u } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2496,
+        1120
+      ],
+      "id": "7f5b8962-8b62-4abf-a2e8-7e751ba3156e",
+      "name": "Build Array Of Post URLs"
+    },
+    {
+      "parameters": {
+        "actorId": {
+          "__rl": true,
+          "value": "us5srxAYnsrkgUv2v",
+          "mode": "list",
+          "cachedResultName": "Facebook Comments Scraper (apify/facebook-comments-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/us5srxAYnsrkgUv2v/input"
+        },
+        "customBody": "={{ JSON.stringify({\n  startUrls: ($json.startUrls || []).map(u => (typeof u === 'string' ? { url: u } : u)),\n  resultsLimit: 100,\n  includeNestedComments: false\n}) }}",
+        "waitForFinish": false
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        720
+      ],
+      "id": "9ba678fd-d9c2-4eab-8c4e-06468496ce49",
+      "name": "Start Scraping Posts",
+      "credentials": {
+        "apifyApi": {
+          "id": "GQukDBhkvkXLiLDN",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e3b9a1eb-0a46-4f72-9bd8-8e4d8ea0d483",
+              "leftValue": "={{ $json.can_scrape }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1600,
+        1120
+      ],
+      "id": "68d2869d-046b-436d-8585-56a789bbeadb",
+      "name": "Is Post Stale?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const HOURS = 3;\nconst lastStr = $node[\"Latest Insert For Post\"].json?.inserted_at ?? null;\nconst now = new Date();\nconst windowMs = HOURS * 3600000;\nconst newer = lastStr ? new Date(lastStr) : new Date(now.getTime() - windowMs);\nconst older = now;\nconst fmt = (d) =>\n  d ? new Date(d).toISOString().replace(/\\.\\d{3}Z$/, \"Z\") : null;\nconst sinceIso = fmt(newer);\nconst untilIso = fmt(older);\nlet can_scrape = false,\n  reason = \"\";\nif (!lastStr) {\n  can_scrape = true;\n  reason = \"no previous ingestion watermark\";\n} else {\n  const elapsed = now - lastStr;\n  if (now - new Date(lastStr) > windowMs) {\n    can_scrape = true;\n    reason = \"elapsed > policy\";\n  } else {\n    const minsLeft = Math.ceil((windowMs - (now - new Date(lastStr))) / 60000);\n    reason = `too recent; ${minsLeft} min left`;\n  }\n}\nreturn {\n  json: {\n    ...$json,\n    window_since_iso: sinceIso,\n    window_until_iso: untilIso,\n    can_scrape,\n    policy_hours: HOURS,\n    last_inserted_at: lastStr,\n    policy_reason: reason,\n  },\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1824,
+        1120
+      ],
+      "id": "a9613acd-7c10-4e9a-85b2-1b02837b9aac",
+      "name": "Compute Window (Post)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT MAX(inserted_at) AS inserted_at FROM posts WHERE full_url = '{{ $json.post_url.replace(/'/g,\"''\") }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2048,
+        1120
+      ],
+      "id": "82859a5f-4a2b-4486-aa99-01352c945e04",
+      "name": "Latest Insert For Post",
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const urls = [];\n\nfor (const item of $(\"Canonicalize Page URL\").all()) {\n  urls.push(item.json.page_urls);\n}\n\nreturn { startUrls: urls[0] };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3616,
+        736
+      ],
+      "id": "f1eced8d-babe-431a-8e7b-8f5a9ebaa390",
+      "name": "Prepare Start Urls"
+    },
+    {
+      "parameters": {
+        "actorId": {
+          "__rl": true,
+          "value": "KoJrdxJCTtpon81KY",
+          "mode": "list",
+          "cachedResultName": "Facebook Posts Scraper (apify/facebook-posts-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/KoJrdxJCTtpon81KY/input"
+        },
+        "customBody": "={{ JSON.stringify({\n  startUrls: ($json.startUrls || []).map(u => (typeof u === 'string' ? { url: u } : u)),\n  resultsLimit: 100,\n  onlyPostsNewerThan: $json.window_since_iso,\n  onlyPostsOlderThan:  $json.window_until_iso\n}) }}",
+        "waitForFinish": false
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -3392,
+        736
+      ],
+      "id": "c86e11eb-306a-4e00-bbd3-a93d8efa51bf",
+      "name": "Start Scraping Pages",
+      "credentials": {
+        "apifyApi": {
+          "id": "GQukDBhkvkXLiLDN",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function cleanFacebookPageUrl(raw){\n  if(!raw) return null;\n  let s = String(raw).trim();\n  if(!/^https?:\\/\\//i.test(s)) s = 'https://' + s;\n  s = s.replace(/^http:\\/\\//i,'https://');\n  s = s.replace(/[?#].*$/,'');\n  if(!/^https:\\/\\/(www\\.)?facebook\\.com\\//i.test(s)) return null;\n  if(!/\\/$/.test(s)) s += '/';\n  return s;\n}\n\nconst pages = Array.isArray($json.page_urls) ? $json.page_urls : [];\nconst startUrls = pages\n  .map(u => cleanFacebookPageUrl(u))\n  .filter(Boolean)\n  .map(u => ({ url: u }));\n\nreturn {\n  json: {\n    ...$json,\n    startUrls\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4736,
+        832
+      ],
+      "id": "0db6db78-65fc-4a31-8fdd-0e4050b664bb",
+      "name": "Build Array Of Page URLs"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"ok\": true,\n  \"accepted\": true,\n  \"mode\": \"post\",\n  \"post_url\": \"={{$json.post_url}}\",\n  \"message\": \"post already present; proceeding to comments freshness\",\n  \"request_id\": \"={{$json.request_id}}\",\n  \"access_granted\": true,\n  \"granted_to_user\": \"={{ $('Normalize').item.json.auth_user_id }}\"\n}\n",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1376,
+        1216
+      ],
+      "id": "7f410453-a221-432e-83c7-6b7de6ee83c2",
+      "name": "Early Acknowledge (Post - No Scrape Needed)"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{$node['Persist + Carry Post Metadata'].json.apify_dataset_id}}/items",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        496
+      ],
+      "id": "37961d1e-760f-42f9-89af-0bec4798eb8e",
+      "name": "Retrieve Post Dataset",
+      "credentials": {
+        "apifyApi": {
+          "id": "GQukDBhkvkXLiLDN",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -256,
+        912
+      ],
+      "id": "d5394e7e-043d-4228-adf0-70ae9c00e93d",
+      "name": "Wait 10s (Post)",
+      "webhookId": "da047a00-fad8-4e12-9fad-be57b090f8d5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "SUCCEEDED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "06dcc675-ad18-4b5a-81f5-b83c731559ec"
+            },
+            {
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "FAILED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "3d16a14a-adc7-4d7f-99d7-669393fcc3a6"
+            },
+            {
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "TIMED-OUT",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "0ade080b-c5ae-4989-825a-3a884b2f60e1"
+            },
+            {
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "ABORTED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "ced94e9e-1d6d-4377-9f59-0f857d88b849"
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        624
+      ],
+      "id": "0331ac54-988a-4730-9704-99eae7254ae5",
+      "name": "Run finished? (Post)"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $('Persist + Carry Post Metadata').item.json.apify_run_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -704,
+        720
+      ],
+      "id": "7482d4ad-8e7c-4743-af4d-e585f696d136",
+      "name": "Poll Run (Post)",
+      "credentials": {
+        "apifyApi": {
+          "id": "GQukDBhkvkXLiLDN",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function cleanFacebookPostUrl(raw){\n  if(!raw) return null; let s=String(raw).trim();\n  if(!/^https?:\\/\\//i.test(s)) s='https://'+s;\n  s=s.replace(/^http:\\/\\//i,'https://');\n  s=s.replace(/[?#].*$/,'');\n  if(!/^https:\\/\\/(www\\.)?facebook\\.com\\//i.test(s)) return null;\n  if(!/\\/$/.test(s)) s=s+'/';\n  return s;\n}\nconst out=[]; for(const it of $input.all()){ out.push({ json:{ ...it.json, post_url: cleanFacebookPostUrl(it.json.post_url) }});} return out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2272,
+        1120
+      ],
+      "id": "95cd7d6b-34c9-4534-b9be-4f78ab384f94",
+      "name": "Canonicalize Post URL"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{$node['Persist + Carry Page Metadata'].json.apify_dataset_id}}/items?clean=true&format=json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "apifyApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2272,
+        432
+      ],
+      "id": "b5b25408-28e9-4150-9471-3f1eb4d81284",
+      "name": "Retrieve Posts Dataset",
+      "credentials": {
+        "apifyApi": {
+          "id": "GQukDBhkvkXLiLDN",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "SUCCEEDED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "cc26728e-2933-4e90-89fd-c62afd146833"
+            },
+            {
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "FAILED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "587f898c-07e0-44c3-bce5-76d0f49cf874"
+            },
+            {
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "TIMED-OUT",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "0749d5f7-d5bc-4c3e-984d-1b9a6baaa481"
+            },
+            {
+              "leftValue": "={{ $json.body.data.status }} ",
+              "rightValue": "ABORTED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "27599617-4df0-4afd-9a12-01ad514cf3a6"
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2496,
+        640
+      ],
+      "id": "15f8942e-249b-4f75-a5b3-0c257590a7f7",
+      "name": "Run finished? (Page)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"accepted\": true,\n  \"mode\": \"page\",\n  \"access_granted\": true,\n  \"granted_to_user\": \"={{ $('Normalize').item.json.auth_user_id }}\"\n}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2944,
+        736
+      ],
+      "id": "0b926e20-600f-4518-9093-06a66bb7e46c",
+      "name": "Early Acknowledge (Page)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "=apify_run_id",
+              "value": "={{ $json.id }}",
+              "type": "string",
+              "id": "08a7b5b3-418a-4654-9e06-2faf902809ee"
+            },
+            {
+              "name": "=apify_dataset_id",
+              "value": "={{ $json.defaultDatasetId }}",
+              "type": "string",
+              "id": "ca237ba8-489d-4e17-961e-9d13cfafce71"
+            },
+            {
+              "name": "=apify_status",
+              "value": "={{ $json.status }}",
+              "type": "string",
+              "id": "a5d3d0a8-1449-4b40-aa66-26f9f97d393d"
+            },
+            {
+              "name": "=apify_finished_at",
+              "value": "={{ $json.finishedAt }}",
+              "type": "string",
+              "id": "a3dba116-e765-4438-8bf9-963ea1c0cd2d"
+            },
+            {
+              "name": "=request_id",
+              "value": "={{ $node[\"Normalize\"].json.request_id }}",
+              "type": "string",
+              "id": "7c927fae-574c-4f19-99ce-dcde09c643f5"
+            },
+            {
+              "name": "=window_since_iso",
+              "value": "={{ $node[\"Compute Window (Page)\"].json.window_since_iso }}",
+              "type": "string",
+              "id": "e8b8ecb4-aefb-4258-87f9-66d3fa5c8e65"
+            },
+            {
+              "id": "47e4d9e7-4347-4c98-b95b-2a844a4e5993",
+              "name": "window_until_iso",
+              "value": "={{ $node[\"Compute Window (Page)\"].json.window_until_iso }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3168,
+        736
+      ],
+      "id": "42045973-b434-4678-8870-3883f27dc80f",
+      "name": "Persist + Carry Page Metadata"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"ok\": true, \"already_scraped\": true, \"page_url\": \"{{$json.page_url}}\", \"last_window_until\": \"{{$json.window_until_iso}}\" }",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -3616,
+        976
+      ],
+      "id": "83d0c335-35cb-4bb0-9d55-60db652e798f",
+      "name": "Terminate If Too Recent (Page)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.can_scrape }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "153e0dc5-eabd-4c27-b54a-2f228d977bba"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3840,
+        832
+      ],
+      "id": "4959f39e-d9b2-42fb-a598-7012840a826f",
+      "name": "Is Page Stale?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const HOURS = 3;\nconst lastStr = $node[\"Latest Insert For Page\"].json?.inserted_at ?? null;\nconst now = new Date();\nconst windowMs = HOURS * 3600000;\nconst newer = lastStr ? new Date(lastStr) : new Date(now.getTime() - windowMs);\nconst older = now;\nconst fmt = (d) =>\n  d ? new Date(d).toISOString().replace(/\\.\\d{3}Z$/, \"Z\") : null;\nconst sinceIso = fmt(newer);\nconst untilIso = fmt(older);\nlet can_scrape = false,\n  reason = \"\";\nif (!lastStr) {\n  can_scrape = true;\n  reason = \"no previous ingestion watermark\";\n} else {\n  const elapsed = now - lastStr;\n  if (now - new Date(lastStr) > windowMs) {\n    can_scrape = true;\n    reason = \"elapsed > policy\";\n  } else {\n    const minsLeft = Math.ceil((windowMs - (now - new Date(lastStr))) / 60000);\n    reason = `too recent; ${minsLeft} min left`;\n  }\n}\nreturn {\n  json: {\n    ...$json,\n    window_since_iso: sinceIso,\n    window_until_iso: untilIso,\n    can_scrape,\n    policy_hours: HOURS,\n    last_inserted_at: lastStr,\n    policy_reason: reason,\n  },\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4064,
+        832
+      ],
+      "id": "b77bc295-9770-4968-a975-7b837e758f8b",
+      "name": "Compute Window (Page)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT MAX(p.inserted_at) AS inserted_at\nFROM posts p\nJOIN pages g ON g.id = p.page_id\nWHERE g.page_url = '{{ $json.page_url.replace(/'/g, \"''\") }}';\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -4288,
+        832
+      ],
+      "id": "debc1101-5f2c-492a-918d-70f9dd3364cc",
+      "name": "Latest Insert For Page",
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function cleanFacebookPageUrl(raw) {\n  if (!raw) return null;\n  let s = String(raw).trim();\n  if (!/^https?:\\/\\//i.test(s)) s = \"https://\" + s;\n  s = s.replace(/^http:\\/\\//i, \"https://\");\n  s = s.replace(/[?#].*$/, \"\");\n  if (!/^https:\\/\\/(www\\.)?facebook\\.com\\//i.test(s)) return null;\n  if (!/\\/$/.test(s)) s = s + \"/\";\n  return s;\n}\nconst out = [];\nfor (const it of $input.all()) {\n  out.push({\n    json: { ...it.json, page_url: cleanFacebookPageUrl(it.json.page_url) },\n  });\n}\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4512,
+        832
+      ],
+      "id": "e56c85be-52fb-4e0f-a286-39902cd0b3c5",
+      "name": "Canonicalize Page URL"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mode }}",
+                    "rightValue": "page",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a09bb6cd-3ee5-4a71-8efe-2870cdb0f800"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Page"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mode }}",
+                    "rightValue": "post",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a098d2b8-b41c-47dd-a667-e2025bba7a9e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Post"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -4960,
+        912
+      ],
+      "id": "7cef7a12-f547-402c-9c9d-cb67e15bfd2e",
+      "name": "Determine Page or Post"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": false, \"errors\": {{$json.errors}} }",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -4960,
+        624
+      ],
+      "id": "0de6b3e9-71b9-49d0-8c43-7a25459d3b10",
+      "name": "Terminate in case of errors"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.errors?.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "id": "09211775-0e16-45eb-bb14-b93a3a661f05"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5184,
+        720
+      ],
+      "id": "f5d0270b-3e86-4cd1-824e-f80622586991",
+      "name": "Has Errors?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pages = Array.isArray($json.page_urls) ? $json.page_urls : [];\nconst posts = Array.isArray($json.post_urls) ? $json.post_urls : [];\nconst errors = [];\nif (!pages.length && !posts.length)\n  errors.push(\"Provide page_urls or post_urls\");\nif (\n  !$json.auth_user_id ||\n  typeof $json.auth_user_id !== \"string\" ||\n  !$json.auth_user_id.trim()\n) {\n  errors.push(\"auth_user_id is required\");\n}\nif (pages.length && posts.length)\n  errors.push(\"Provide only one of page_urls or post_urls\");\nfor (const u of pages)\n  if (typeof u !== \"string\" || !u.trim())\n    errors.push(\"page_urls[] must be non-empty strings\");\nfor (const u of posts)\n  if (typeof u !== \"string\" || !u.trim())\n    errors.push(\"post_urls[] must be non-empty strings\");\nreturn {\n  json: {\n    ...$json,\n    mode: pages.length ? \"page\" : \"post\",\n    errors,\n    valid: errors.length === 0,\n  },\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5408,
+        720
+      ],
+      "id": "13884670-625c-4bca-96c7-7bca3e155f05",
+      "name": "Validate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "page_urls",
+              "value": "={{ $json.page_urls ?? $json.body?.page_urls ?? [] }}",
+              "type": "array",
+              "id": "126fde8f-7c41-42aa-b39c-0193dcffdbfc"
+            },
+            {
+              "name": "post_urls",
+              "value": "={{ $json.post_urls ?? $json.body?.post_urls ?? [] }}",
+              "type": "array",
+              "id": "8f3e3e5d-2641-4f24-a012-61a98cd160e0"
+            },
+            {
+              "name": "request_id",
+              "value": "={{ $json.body.request_id ?? $json.headers?.['x-request-id'] ?? '' }}",
+              "type": "string",
+              "id": "adafc46d-a759-4053-b920-ee0e6bfec46b"
+            },
+            {
+              "name": "source",
+              "value": "={{ $json.source ?? 'api' }}",
+              "type": "string",
+              "id": "42fb8a86-6af1-400c-ae41-bcda62e3c338"
+            },
+            {
+              "name": "headers",
+              "value": "={{ $json.headers ?? {} }}",
+              "type": "object",
+              "id": "e2443c66-5275-4613-9d55-23dddd7df29c"
+            },
+            {
+              "id": "8bb09d20-b3e8-4dd2-9cb6-767c2b539c6b",
+              "name": "auth_user_id",
+              "value": "={{ $json.auth_user_id ?? $json.body.auth_user_id}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5632,
+        720
+      ],
+      "id": "d716d39d-01c8-405d-9540-60510991ed24",
+      "name": "Normalize"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ingest/scrape",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5856,
+        816
+      ],
+      "id": "d9178a75-93b5-408f-a450-80a0f80dc4f5",
+      "name": "Start Scrape",
+      "webhookId": "f5195d9d-60eb-4731-b972-85d5a4b830aa"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "pages",
+          "mode": "list",
+          "cachedResultName": "pages"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "page_url": "={{ $json.page_url }}",
+            "page_name": "={{ $json.page_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "page_url",
+              "displayName": "page_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "page_name",
+              "displayName": "page_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inserted_at",
+              "displayName": "inserted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "skipOnConflict": true
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1600,
+        432
+      ],
+      "id": "ca28015e-1edb-414f-a93f-ce89f97d79a4",
+      "name": "Upsert Pages",
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Group items by page_url and collect unique post URLs per page\nfunction cleanUrl(u) {\n  return String(u ?? '').trim();\n}\n\nconst pagesByUrl = new Map();\n\nfor (const { json } of $input.all()) {\n  const page_url = cleanUrl(json.page_url);\n  if (!page_url) continue;\n\n  // Initialize page entry (with an internal Set for dedupe)\n  if (!pagesByUrl.has(page_url)) {\n    pagesByUrl.set(page_url, {\n      page_url,\n      page_name: json.page_name ?? null,\n      _post_urls_set: new Set(), // internal; will be turned into array later\n    });\n  }\n\n  // Prefer the first non-empty page_name or update if current is null/blank\n  const entry = pagesByUrl.get(page_url);\n  const incomingName = cleanUrl(json.page_name);\n  if (incomingName && !entry.page_name) {\n    entry.page_name = incomingName;\n  }\n\n  // Collect post_url uniquely\n  const post_url = cleanUrl(json.post_url);\n  if (post_url) {\n    entry._post_urls_set.add(post_url);\n  }\n}\n\n// Emit one item per page with post_urls as an array\nconst result = Array.from(pagesByUrl.values()).map(p => ({\n  json: {\n    page_url: p.page_url,\n    page_name: p.page_name, // convert Set -> array\n  }\n}));\n\nreturn result;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1824,
+        432
+      ],
+      "id": "d72bf9b7-b21e-4835-ad41-051bbb4e3110",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -5856,
+        624
+      ],
+      "id": "4dd14520-2c2e-4059-807c-4e1624c5ef4e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "76bec073-96cf-46b4-8284-ebe6ee44e63a",
+              "name": "page_name",
+              "value": "={{ $json.pageName }}",
+              "type": "string"
+            },
+            {
+              "id": "1d1be9eb-5ad6-4855-bd47-a9d0f2b9c593",
+              "name": "page_url",
+              "value": "={{ $json.facebookUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "d04725e0-292d-4526-8afa-2af902c4c408",
+              "name": "page_name",
+              "value": "={{ $json.pageName }}",
+              "type": "string"
+            },
+            {
+              "id": "08216c47-9bd9-486a-9f84-1fdf1a1fa598",
+              "name": "post_url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "e3268752-2e38-48ac-9c4f-9cafd13b71d7",
+              "name": "post_content",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "30793123-3470-4d98-8221-70ab4a96e12b",
+              "name": "post_reactions_count",
+              "value": "={{ $json.likes }}",
+              "type": "number"
+            },
+            {
+              "id": "b51ca5c8-4846-4a79-bf71-1c507fab6dba",
+              "name": "post_shares_count",
+              "value": "={{ $json.shares }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2048,
+        432
+      ],
+      "id": "a11812c7-247f-4008-bfce-174b56169d79",
+      "name": "Extract Posts Data"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "dmRXkCcmphmXtfoz",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/dmRXkCcmphmXtfoz",
+          "cachedResultName": "Post Sentiment Analysis"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1760,
+        192
+      ],
+      "id": "a8a2aa0a-6aa5-42e6-8b31-b373f80fbc36",
+      "name": "Call 'Post Sentiment Analysis'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f506c369-752d-4a7d-8cbb-09a99ea7805f",
+              "name": "post_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "f624acac-470c-4e77-88f5-31ed0006debd",
+              "name": "post_content",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        288
+      ],
+      "id": "9456f3a0-328c-4173-8b50-c20d5068b413",
+      "name": "Extract Post Id And Content For Sentiment Analysis"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.comments (full_url, post_id, user_id, content, posted_at)\nVALUES (\n  NULLIF('{{ $json.comment_url.replace(/'/g,\"''\") }}',''),\n  '{{ $json.post_id.trim() }}'::uuid,\n  NULLIF('{{ ($json.user_id || \"\").trim() }}','')::uuid,\n  /* NULL if blank; otherwise preserve emojis/newlines verbatim */\n  NULLIF($n8n$ {{ $json.comment_content || \"\" }} $n8n$, $n8n$$n8n$),\n  NULLIF('{{ $json.posted_at || \"\" }}','')::timestamptz\n)\nON CONFLICT (full_url) DO UPDATE\nSET\n  post_id   = EXCLUDED.post_id,\n  user_id   = COALESCE(EXCLUDED.user_id, comments.user_id),\n  content   = COALESCE(EXCLUDED.content, comments.content),\n  posted_at = COALESCE(EXCLUDED.posted_at, comments.posted_at)\nRETURNING\n  id,\n  full_url,\n  post_id,\n  user_id,\n  content,\n  (SELECT p.content FROM public.posts p WHERE p.id = comments.post_id) AS post_content;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1312,
+        624
+      ],
+      "id": "8f3ca7c0-a445-41f0-9346-3efc523a9267",
+      "name": "Upsert Comments",
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Join post IDs (from Upsert Post1) + user IDs (from Upsert Users)\n// onto each original comment row (from Extract Post Data).\n\nfunction cleanUrl(u) {\n  return String(u ?? '').replace(/[?#].*$/, '');\n}\nfunction normFbId(id) {\n  return String(id ?? '').trim().toLowerCase();\n}\n\n// 1) Posts returned by Upsert Post1 (this node's input)\nconst posts = $input.all().map(i => i.json);\n\n// 2) Users returned by Upsert Users node\nconst users = $('Upsert Users').all().map(i => i.json);\n\n// 3) Original comment rows (from Extract Post Data)\nconst comments = $('Extract Post Data').all().map(i => i.json);\n\n// 4) Index posts by normalized URL\nconst postsByUrl = new Map();\nfor (const p of posts) {\n  const key = cleanUrl(p.full_url);\n  if (key) postsByUrl.set(key, p); // { id, full_url, content, ... }\n}\n\n// 5) Index users by normalized fb_profile_id\nconst usersByFbId = new Map();\nfor (const u of users) {\n  const key = normFbId(u.fb_profile_id);\n  if (key && !usersByFbId.has(key)) usersByFbId.set(key, u); // { id, fb_profile_id, full_name }\n}\n\n// 6) Build output rows for comments with post_id + user_id (+ posted_at)\nconst out = [];\nfor (const c of comments) {\n  const postKey = cleanUrl(c.post_url);\n  const post = postsByUrl.get(postKey);\n  if (!post) continue; // skip if we didn't upsert/return this post\n\n  const user = usersByFbId.get(normFbId(c.user_profile_id));\n\n  out.push({\n    json: {\n      post_id: post.id,\n      post_url: post.full_url,\n      post_content: post.content ?? null,\n\n      user_id: user?.id ?? null,\n      user_fb_profile_id: user?.fb_profile_id ?? c.user_profile_id ?? null,\n      user_full_name: user?.full_name ?? c.user_full_name ?? null,\n\n      comment_url: c.comment_url ?? null,\n      comment_content: c.comment_content ?? null,\n\n      // pulled from Extract Post Data row\n      posted_at: c.posted_at ?? null,\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        624
+      ],
+      "id": "163da7ff-6b3a-4a88-a3c8-1d8c93913c59",
+      "name": "Group Comments With Postgres Post Ids"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8e7AL1XjZRqZF8FO",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/8e7AL1XjZRqZF8FO",
+          "cachedResultName": "Comment Sentiment Analysis"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2192,
+        496
+      ],
+      "id": "0ba0630f-2573-407a-9d07-bf5755a6030b",
+      "name": "Call 'Comment Sentiment Analysis'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7c0d41b9-7593-4d20-bead-d488df8a7814",
+              "name": "post_id",
+              "value": "={{ $json.post_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f141f6b5-2631-4c40-8720-11d1aa90c4dd",
+              "name": "post_content",
+              "value": "={{ $json.post_content }}",
+              "type": "string"
+            },
+            {
+              "id": "c3ff5258-afde-465d-9582-de812cb04c13",
+              "name": "comment_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c9f79754-59f0-4265-b36d-375ff6b93eb9",
+              "name": "comment_content",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1536,
+        624
+      ],
+      "id": "e560a8c6-3857-416c-b2ee-c38625b4f500",
+      "name": "Extract Post/Comment Id And Content For Sentiment Analysis"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH incoming(comment_id, comment_content) AS (\n  VALUES\n  {{\n    $items().map(i => \"(\" +\n      \"'\" + i.json.comment_id + \"'::uuid, \" +\n      (i.json.comment_content\n        ? \"'\" + i.json.comment_content.replace(/'/g, \"''\") + \"'\"\n        : \"NULL\"\n      ) +\n    \")\").join(\",\\n\")\n  }}\n)\nSELECT\n  c.id AS comment_id,\n  COALESCE(c.content, incoming.comment_content) AS comment_content\nFROM incoming\nJOIN comments c\n  ON c.id = incoming.comment_id\nLEFT JOIN sentiments s\n  ON s.comment_id = c.id\nWHERE s.comment_id IS NULL                 -- keep only comments with no sentiment yet\nORDER BY c.inserted_at ASC NULLS LAST, c.id ASC;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1744,
+        624
+      ],
+      "id": "d7aeaaac-8881-417a-9920-de2e541923ef",
+      "name": "Get All Comments From Ids Without Sentiment",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH incoming(post_id, post_content) AS (\n  VALUES\n  {{ \n    $items().map(i => \"(\" +\n      \"'\" + i.json.post_id + \"'::uuid, \" +\n      (i.json.post_content\n        ? \"'\" + i.json.post_content.replace(/'/g, \"''\") + \"'\"\n        : \"NULL\"\n      ) +\n    \")\").join(\",\\n\")\n  }}\n)\nSELECT\n  p.id          AS post_id,\n  COALESCE(p.content, incoming.post_content) AS post_content\nFROM incoming\nJOIN posts p\n  ON p.id = incoming.post_id\nLEFT JOIN sentiments s\n  ON s.post_id = p.id\n AND s.comment_id IS NULL\nWHERE s.post_id IS NULL          -- keep only posts with no post-level sentiment yet\nORDER BY p.inserted_at ASC NULLS LAST, p.id ASC;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1312,
+        288
+      ],
+      "id": "32a4ddab-0a71-4d29-ae76-bdf306a377a8",
+      "name": "Get All Posts From Ids Without Sentiment",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "woyOxDEFmPDOvdit",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 90,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1536,
+        288
+      ],
+      "id": "269ec964-03c4-48ef-8e85-bad8df3581a1",
+      "name": "90 Posts Per Run"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1984,
+        288
+      ],
+      "id": "5ec90959-6eed-454a-9f6a-217346b23017",
+      "name": "Wait 1 Minute (200,000 TPM OpenAI Limit)",
+      "webhookId": "bb5dc697-0ec2-4958-ab9a-6e9bd88050d7"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2416,
+        624
+      ],
+      "id": "adfa6dcd-13ca-4e6a-a6db-065cbeed3eaa",
+      "name": "Wait 1 Minute (200,000 TPM OpenAI Limit) ",
+      "webhookId": "a58b3598-9d17-47a8-ab12-9332e90623e0"
+    },
+    {
+      "parameters": {
+        "batchSize": 90,
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1968,
+        624
+      ],
+      "id": "ef411f4d-6e38-420e-b92f-4c13fe4b8e27",
+      "name": "90 Comments Per Run"
+    }
+  ],
+  "connections": {
+    "Compose Completion Payload (Page)": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend (Completion - Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3s (Notify Page)": {
+      "main": [
+        [
+          {
+            "node": "Compose Completion Payload (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Completion Payload (Post)": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend (Completion - Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3s (Notify Post)": {
+      "main": [
+        [
+          {
+            "node": "Compose Completion Payload (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Run (Page)": {
+      "main": [
+        [
+          {
+            "node": "Run finished? (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s (Page)": {
+      "main": [
+        [
+          {
+            "node": "Poll Run (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Post": {
+      "main": [
+        [
+          {
+            "node": "Extract Post Id And Content For Sentiment Analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Group Comments With Postgres Post Ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Unique Posts": {
+      "main": [
+        [
+          {
+            "node": "Upsert Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Unique Users": {
+      "main": [
+        [
+          {
+            "node": "Upsert Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Users": {
+      "main": [
+        [
+          {
+            "node": "Extract Unique Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post Data": {
+      "main": [
+        [
+          {
+            "node": "Extract Unique Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist + Carry Post Metadata": {
+      "main": [
+        [
+          {
+            "node": "Poll Run (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Start URLs (Post)": {
+      "main": [
+        [
+          {
+            "node": "Start Scraping Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Start URLs (Page)": {
+      "main": [
+        [
+          {
+            "node": "Start Scraping Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Array Of Post URLs": {
+      "main": [
+        [
+          {
+            "node": "Canonicalize Post URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Scraping Posts": {
+      "main": [
+        [
+          {
+            "node": "Persist + Carry Post Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Post Stale?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Start URLs (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Early Acknowledge (Post - No Scrape Needed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Window (Post)": {
+      "main": [
+        [
+          {
+            "node": "Is Post Stale?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Latest Insert For Post": {
+      "main": [
+        [
+          {
+            "node": "Compute Window (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Start Urls": {
+      "main": [
+        [
+          {
+            "node": "Start Scraping Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Scraping Pages": {
+      "main": [
+        [
+          {
+            "node": "Persist + Carry Page Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Array Of Page URLs": {
+      "main": [
+        [
+          {
+            "node": "Canonicalize Page URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Post Dataset": {
+      "main": [
+        [
+          {
+            "node": "Extract Post Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s (Post)": {
+      "main": [
+        [
+          {
+            "node": "Poll Run (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run finished? (Post)": {
+      "main": [
+        [
+          {
+            "node": "Wait 3s (Notify Post)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Retrieve Post Dataset",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 10s (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Run (Post)": {
+      "main": [
+        [
+          {
+            "node": "Run finished? (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Canonicalize Post URL": {
+      "main": [
+        [
+          {
+            "node": "Latest Insert For Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Posts Dataset": {
+      "main": [
+        [
+          {
+            "node": "Extract Posts Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run finished? (Page)": {
+      "main": [
+        [
+          {
+            "node": "Wait 3s (Notify Page)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Retrieve Posts Dataset",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 10s (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Early Acknowledge (Page)": {
+      "main": [
+        [
+          {
+            "node": "Poll Run (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist + Carry Page Metadata": {
+      "main": [
+        [
+          {
+            "node": "Early Acknowledge (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Page Stale?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Start Urls",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Terminate If Too Recent (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Window (Page)": {
+      "main": [
+        [
+          {
+            "node": "Is Page Stale?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Latest Insert For Page": {
+      "main": [
+        [
+          {
+            "node": "Compute Window (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Canonicalize Page URL": {
+      "main": [
+        [
+          {
+            "node": "Latest Insert For Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Page or Post": {
+      "main": [
+        [
+          {
+            "node": "Build Array Of Page URLs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Array Of Post URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Errors?": {
+      "main": [
+        [
+          {
+            "node": "Terminate in case of errors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Determine Page or Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Has Errors?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Scrape": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Pages": {
+      "main": [
+        [
+          {
+            "node": "Prepare Start URLs (Page)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Upsert Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Posts Data": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Post Sentiment Analysis'": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Minute (200,000 TPM OpenAI Limit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post Id And Content For Sentiment Analysis": {
+      "main": [
+        [
+          {
+            "node": "Get All Posts From Ids Without Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Comments": {
+      "main": [
+        [
+          {
+            "node": "Extract Post/Comment Id And Content For Sentiment Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group Comments With Postgres Post Ids": {
+      "main": [
+        [
+          {
+            "node": "Upsert Comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Comment Sentiment Analysis'": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Minute (200,000 TPM OpenAI Limit) ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post/Comment Id And Content For Sentiment Analysis": {
+      "main": [
+        [
+          {
+            "node": "Get All Comments From Ids Without Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Comments From Ids Without Sentiment": {
+      "main": [
+        [
+          {
+            "node": "90 Comments Per Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Posts From Ids Without Sentiment": {
+      "main": [
+        [
+          {
+            "node": "90 Posts Per Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "90 Posts Per Run": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Call 'Post Sentiment Analysis'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Minute (200,000 TPM OpenAI Limit)": {
+      "main": [
+        [
+          {
+            "node": "90 Posts Per Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Minute (200,000 TPM OpenAI Limit) ": {
+      "main": [
+        [
+          {
+            "node": "90 Comments Per Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "90 Comments Per Run": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Call 'Comment Sentiment Analysis'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When clicking ‘Execute workflow’": [
+      {
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "user-agent": "axios/1.12.2",
+          "content-length": "169",
+          "accept-encoding": "gzip, compress, deflate, br",
+          "host": "n8n:5678",
+          "connection": "close"
+        },
+        "params": {},
+        "query": {},
+        "body": {
+          "page_urls": [
+            "https://facebook.com/tvformula",
+            "https://facebook.com/tvimedi"
+          ],
+          "source": "web",
+          "request_id": "785b8130-8d36-45fa-99b5-fe4e5bbb4050",
+          "auth_user_id": "e4f1db02-158d-4345-9fce-c860b72e20bb"
+        },
+        "webhookUrl": "http://localhost:5678/webhook/ingest/scrape",
+        "executionMode": "production"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6b2cd1a66d40c4caef13c8b83faa61b3718613d8dc26636859e6b32022cebfe6"
+  }
+}

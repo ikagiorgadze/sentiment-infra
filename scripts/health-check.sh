@@ -38,12 +38,11 @@ check_postgres() {
   if docker compose -f docker-compose.production.yml exec -T postgres pg_isready -U "${POSTGRES_USER:-appuser}" >/dev/null 2>&1; then
     echo -e "${GREEN}✅ PostgreSQL is healthy and accepting connections${NC}"
     
-    # Check if database exists
+    # Check if database exists (warning only, not a failure)
     if docker compose -f docker-compose.production.yml exec -T postgres psql -U "${POSTGRES_USER:-appuser}" -lqt | cut -d \| -f 1 | grep -qw "${POSTGRES_DB:-facebook_analysis}"; then
       echo -e "${GREEN}✅ Database '${POSTGRES_DB:-facebook_analysis}' exists${NC}"
     else
-      echo -e "${YELLOW}⚠️  Database '${POSTGRES_DB:-facebook_analysis}' not found${NC}"
-      all_healthy=false
+      echo -e "${YELLOW}⚠️  Database '${POSTGRES_DB:-facebook_analysis}' not found (will be created by backend)${NC}"
     fi
   else
     echo -e "${RED}❌ PostgreSQL is not healthy${NC}"

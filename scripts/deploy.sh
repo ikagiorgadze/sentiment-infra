@@ -36,10 +36,16 @@ else
   echo "ℹ️  No existing containers found"
 fi
 
-# Clean up dangling images to save space
+# Clean up Docker to save space
 echo ""
-echo "🧹 Cleaning up dangling images..."
+echo "🧹 Cleaning up Docker resources..."
+echo "   - Removing dangling images..."
 docker image prune -f || true
+echo "   - Removing unused build cache..."
+docker builder prune -f --filter "until=24h" || true
+echo "   - Current disk usage:"
+df -h / | tail -1 | awk '{print "   Disk: " $3 " used / " $2 " total (" $5 " full)"}'
+docker system df --format "table {{.Type}}\t{{.TotalCount}}\t{{.Size}}" | tail -n +2 | awk '{print "   Docker " $1 ": " $3}'
 
 # Build and start services
 echo ""

@@ -30,14 +30,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        400,
-        -208
+        416,
+        -80
       ],
-      "id": "a8ce3e1a-9ef8-47f3-be03-d013ed178c89",
+      "id": "c21ea412-0bb0-4421-aad5-8e2fc08dfe78",
       "name": "Get Current News Context",
+      "retryOnFail": true,
       "credentials": {
         "perplexityApi": {
-          "id": "FszUDNtKdVxebpiH",
+          "id": "Mp1xVctSsliy0aGv",
           "name": "Perplexity account"
         }
       }
@@ -53,10 +54,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        624,
-        -208
+        640,
+        -80
       ],
-      "id": "7aca7ef7-736e-4d5c-9278-d76205fbc303",
+      "id": "d5264f35-ea56-4f04-a350-d8f3e8325c3d",
       "name": "Political Science Expert"
     },
     {
@@ -74,14 +75,14 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        632,
-        16
+        648,
+        144
       ],
-      "id": "77bf37ba-7a9f-4410-9c47-f0d4fc71041d",
+      "id": "0e3652f9-e119-40dd-ac6c-32af4531aa7a",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "ftfBSNeamb0UOYeN",
+          "id": "e4eBkttpl4KmqR8A",
           "name": "OpenAi account"
         }
       }
@@ -93,10 +94,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        976,
-        -208
+        992,
+        -80
       ],
-      "id": "08bf6f98-bfca-4f78-8b4a-d53e5e77e290",
+      "id": "edc75405-ba82-4c97-804e-38358c911671",
       "name": "Format Analysis"
     },
     {
@@ -108,10 +109,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1200,
-        -208
+        1216,
+        -80
       ],
-      "id": "f0316e0f-5fa4-42d9-b1d4-bd2825330b8f",
+      "id": "87f34ba8-3f21-40b5-b904-b70a9c3d9914",
       "name": "Send Analysis to User"
     },
     {
@@ -119,32 +120,34 @@
       "type": "n8n-nodes-mcp.mcpClientTool",
       "typeVersion": 1,
       "position": [
-        760,
-        16
+        776,
+        144
       ],
-      "id": "7815dbbf-9dfb-469c-a03b-82f98943708c",
+      "id": "97f65659-cbc4-4595-81dd-d4c25332a2f6",
       "name": "OpenAlex Server",
       "credentials": {
         "mcpClientApi": {
-          "id": "SUky71Br3ctLILXg",
-          "name": "Openalex credential"
+          "id": "qiIgKePohchaGHzm",
+          "name": "OpenAlex credential"
         }
       }
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "ad221486-cf3d-43e0-98b2-390192147713",
+        "path": "/chat/ad221486-cf3d-43e0-98b2-390192147713",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -48,
-        -208
+        -32,
+        16
       ],
-      "id": "26a0f9f5-6374-4748-90d7-d6067cec37ca",
+      "id": "a61c7d40-a9c8-4cd0-a38a-3f82f7d8975f",
       "name": "Webhook",
       "webhookId": "ad221486-cf3d-43e0-98b2-390192147713"
     },
@@ -155,10 +158,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        176,
-        -208
+        192,
+        -80
       ],
-      "id": "7bf6ed99-d03b-44f5-ac42-c8ecfe38ce9e",
+      "id": "09b06456-a390-48aa-b31a-cb95c01c1619",
       "name": "Normalize Input"
     }
   ],
@@ -244,6 +247,6 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "6b2cd1a66d40c4caef13c8b83faa61b3718613d8dc26636859e6b32022cebfe6"
+    "instanceId": "15194f5ba6130d0a2240e6d09c3072c67db8d57ff7fdf4464629090d152dbfb3"
   }
 }

@@ -19,9 +19,8 @@ services:
       - app-network
 
   n8n:
-    image: n8nio/n8n:latest
-    # Commented out custom build to save disk space
-    # build: .
+    # Using custom build with uvx and git for MCP server support
+    build: .
     ports:
       - "5678:5678"
     environment:

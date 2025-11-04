@@ -30,15 +30,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        416,
-        -80
+        272,
+        64
       ],
-      "id": "c21ea412-0bb0-4421-aad5-8e2fc08dfe78",
+      "id": "feb76558-5a1e-4c73-be84-ccc3cca4c392",
       "name": "Get Current News Context",
       "retryOnFail": true,
       "credentials": {
         "perplexityApi": {
-          "id": "Mp1xVctSsliy0aGv",
+          "id": "cmZX5VLzmL5RnhYi",
           "name": "Perplexity account"
         }
       }
@@ -54,10 +54,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        640,
-        -80
+        496,
+        64
       ],
-      "id": "d5264f35-ea56-4f04-a350-d8f3e8325c3d",
+      "id": "4961fcb3-3c4b-4d23-a241-3e80efcb48d9",
       "name": "Political Science Expert"
     },
     {
@@ -75,14 +75,14 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        648,
-        144
+        512,
+        288
       ],
-      "id": "0e3652f9-e119-40dd-ac6c-32af4531aa7a",
+      "id": "41ca7561-5663-4661-9d49-d13fb4a335ab",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "e4eBkttpl4KmqR8A",
+          "id": "JetiJ8PfC3YypNe2",
           "name": "OpenAi account"
         }
       }
@@ -94,10 +94,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        992,
-        -80
+        848,
+        64
       ],
-      "id": "edc75405-ba82-4c97-804e-38358c911671",
+      "id": "d9b14afb-bb12-4bb8-9d5e-1f9de5fd85b2",
       "name": "Format Analysis"
     },
     {
@@ -109,10 +109,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1216,
-        -80
+        1072,
+        64
       ],
-      "id": "87f34ba8-3f21-40b5-b904-b70a9c3d9914",
+      "id": "a392c90c-d293-40fc-a6ba-fcb0dfb1d38b",
       "name": "Send Analysis to User"
     },
     {
@@ -120,22 +120,22 @@
       "type": "n8n-nodes-mcp.mcpClientTool",
       "typeVersion": 1,
       "position": [
-        776,
-        144
+        640,
+        288
       ],
-      "id": "97f65659-cbc4-4595-81dd-d4c25332a2f6",
+      "id": "d7cbe794-4557-41ba-841e-276a3aeae893",
       "name": "OpenAlex Server",
       "credentials": {
         "mcpClientApi": {
-          "id": "qiIgKePohchaGHzm",
-          "name": "OpenAlex credential"
+          "id": "Zp1kYApxuuR46dOZ",
+          "name": "MCP Client (STDIO) account"
         }
       }
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "/chat/ad221486-cf3d-43e0-98b2-390192147713",
+        "path": "chat/ad221486-cf3d-43e0-98b2-390192147713",
         "responseMode": "responseNode",
         "options": {
           "allowedOrigins": "*"
@@ -144,24 +144,24 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -32,
-        16
+        -176,
+        64
       ],
-      "id": "a61c7d40-a9c8-4cd0-a38a-3f82f7d8975f",
+      "id": "934b6f11-94d4-4189-8f3f-dd78bb43f1ef",
       "name": "Webhook",
       "webhookId": "ad221486-cf3d-43e0-98b2-390192147713"
     },
     {
       "parameters": {
-        "jsCode": "// Normalizes incoming payloads (JSON, form, plain text) into { chatInput, threadId, client:{} }\n// so downstream nodes can safely use {{$json.chatInput}}.\n\nconst headers = $json.headers ?? {};\nconst ct = String(\n  headers[\"content-type\"] || headers[\"Content-Type\"] || \"\",\n).toLowerCase();\n\nlet body = $json.body ?? {};\nlet query = $json.query ?? {};\nlet chatInput = \"\";\n\n// 1) Try common JSON/form keys\nfunction pick(o) {\n  if (!o) return \"\";\n  return o.chatInput ?? o.message ?? o.text ?? o.q ?? o.prompt ?? \"\";\n}\n\nif (ct.includes(\"application/json\")) {\n  chatInput = pick(body);\n} else if (\n  ct.includes(\"application/x-www-form-urlencoded\") ||\n  ct.includes(\"multipart/form-data\")\n) {\n  chatInput = pick(body);\n} else if (ct.includes(\"text/plain\")) {\n  // For raw text bodies\n  chatInput = String($json.body ?? \"\").trim();\n}\n\n// 2) Fallbacks: query string and root-level JSON\nif (!chatInput) chatInput = pick(query);\nif (!chatInput) chatInput = String($json.chatInput ?? \"\").trim();\n\n// 3) Final trim and guardrail\nchatInput = String(chatInput || \"\").trim();\nif (!chatInput) {\n  // You can also throw to short-circuit the workflow:\n  // throw new Error('Missing chatInput');\n  return [{ json: { error: \"Missing chatInput\", received: $json } }];\n}\n\n// Optional threading and client metadata\nconst threadId =\n  body.threadId ?? query.threadId ?? headers[\"x-thread-id\"] ?? null;\n\nreturn [\n  {\n    json: {\n      chatInput,\n      threadId,\n      client: {\n        ip: headers[\"x-forwarded-for\"] ?? headers[\"cf-connecting-ip\"] ?? null,\n        ua: headers[\"user-agent\"] ?? null,\n        origin: headers.origin ?? null,\n        referer: headers.referer ?? null,\n      },\n    },\n  },\n];\n"
+        "jsCode": "// Normalizes incoming payloads (JSON, form, plain text) into\n// { chatInput, history, auth_user_id, threadId, client:{} }\n// so downstream nodes receive consistent structures.\n\nconst headers = $json.headers ?? {};\nconst ct = String(\n  headers[\"content-type\"] || headers[\"Content-Type\"] || \"\"\n).toLowerCase();\n\nconst body = $json.body ?? {};\nconst query = $json.query ?? {};\nlet chatInput = \"\";\n\n// Helper to pluck a prompt-like field from an object\nconst pick = (source) => {\n  if (!source || typeof source !== \"object\") return \"\";\n  return (\n    source.chatInput ??\n    source.message ??\n    source.text ??\n    source.q ??\n    source.prompt ??\n    \"\"\n  );\n};\n\nif (ct.includes(\"application/json\")) {\n  chatInput = pick(body);\n} else if (\n  ct.includes(\"application/x-www-form-urlencoded\") ||\n  ct.includes(\"multipart/form-data\")\n) {\n  chatInput = pick(body);\n} else if (ct.includes(\"text/plain\")) {\n  chatInput = String($json.body ?? \"\").trim();\n}\n\nif (!chatInput) chatInput = pick(query);\nif (!chatInput) chatInput = String($json.chatInput ?? \"\").trim();\n\nchatInput = String(chatInput || \"\").trim();\nif (!chatInput) {\n  return [{ json: { error: \"Missing chatInput\", received: $json } }];\n}\n\n// Normalize optional history array\nconst rawHistory = Array.isArray(body.history)\n  ? body.history\n  : Array.isArray(query.history)\n    ? query.history\n    : Array.isArray($json.history)\n      ? $json.history\n      : [];\n\nconst history = rawHistory\n  .filter((entry) => entry && typeof entry.content === \"string\")\n  .map((entry) => ({\n    role: entry.role === \"assistant\" ? \"assistant\" : \"user\",\n    content: entry.content.trim(),\n  }))\n  .filter((entry) => entry.content.length > 0);\n\nconst authUserId =\n  body.auth_user_id ??\n  query.auth_user_id ??\n  headers[\"x-auth-user-id\"] ??\n  headers[\"X-Auth-User-Id\"] ??\n  ($json.auth_user_id ?? null);\n\nconst threadId =\n  body.threadId ??\n  query.threadId ??\n  headers[\"x-thread-id\"] ??\n  headers[\"X-Thread-Id\"] ??\n  null;\n\nreturn [\n  {\n    json: {\n      chatInput,\n      history,\n      auth_user_id: typeof authUserId === \"string\" ? authUserId : null,\n      threadId,\n      client: {\n        ip:\n          headers[\"x-forwarded-for\"] ??\n          headers[\"X-Forwarded-For\"] ??\n          headers[\"cf-connecting-ip\"] ??\n          headers[\"CF-Connecting-IP\"] ??\n          null,\n        ua: headers[\"user-agent\"] ?? headers[\"User-Agent\"] ?? null,\n        origin: headers.origin ?? headers.Origin ?? null,\n        referer: headers.referer ?? headers.Referer ?? null,\n      },\n    },\n  },\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        192,
-        -80
+        48,
+        64
       ],
-      "id": "09b06456-a390-48aa-b31a-cb95c01c1619",
+      "id": "c358f2d4-8201-4bf4-8511-5dcfe21da6d4",
       "name": "Normalize Input"
     }
   ],

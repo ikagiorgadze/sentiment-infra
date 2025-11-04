@@ -36,6 +36,21 @@ else
   echo "ℹ️  No existing containers found"
 fi
 
+# Reset PostgreSQL data volume so init scripts run on each deploy
+echo ""
+echo "🧯 Resetting PostgreSQL data volume..."
+PROJECT_NAME=$(docker compose -f docker-compose.production.yml config | awk '/^name:/ {print $2; exit}')
+POSTGRES_VOLUME="${PROJECT_NAME}_pgdata"
+if docker volume inspect "$POSTGRES_VOLUME" >/dev/null 2>&1; then
+  docker volume rm "$POSTGRES_VOLUME" >/dev/null
+  echo "✅ Removed volume $POSTGRES_VOLUME"
+else
+  echo "ℹ️  PostgreSQL volume $POSTGRES_VOLUME not found (nothing to remove)"
+fi
+
+# Keep the n8n volume intact for persisted workflows/credentials
+echo "ℹ️  Preserving n8n volume ${PROJECT_NAME}_n8n_data"
+
 # Clean up Docker to save space
 echo ""
 echo "🧹 Cleaning up Docker resources..."
@@ -43,8 +58,6 @@ echo "   - Removing unused containers..."
 docker container prune -f || true
 echo "   - Removing unused images..."
 docker image prune -af || true
-echo "   - Removing unused volumes..."
-docker volume prune -f || true
 echo "   - Removing build cache..."
 docker builder prune -af || true
 echo "   - Current disk usage:"
@@ -63,6 +76,11 @@ elif [ "$AVAILABLE_KB" -lt "$MIN_FREE_KB" ]; then
   echo "💡 Tip: Run scripts/cleanup-docker.sh or expand the disk volume before redeploying."
   exit 1
 fi
+
+# Pull the latest PostgreSQL image to avoid stale builds
+echo ""
+echo "📦 Pulling latest PostgreSQL image..."
+docker compose -f docker-compose.production.yml pull postgres
 
 # Build and start services
 echo ""
